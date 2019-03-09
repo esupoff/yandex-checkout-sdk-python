@@ -1,4 +1,7 @@
 import unittest
+import unittest.mock
+
+from datetime import datetime, timezone, timedelta
 
 from yandex_checkout.domain.common.confirmation_type import ConfirmationType
 from yandex_checkout.domain.common.payment_method_type import PaymentMethodType
@@ -9,9 +12,11 @@ from yandex_checkout.domain.models.confirmation.request.confirmation_redirect im
 from yandex_checkout.domain.models.currency import Currency
 from yandex_checkout.domain.models.payment_data.payment_data import PaymentData
 from yandex_checkout.domain.models.payment_data.request.payment_data_webmoney import PaymentDataWebmoney
+from yandex_checkout.domain.models.payment_data.request.payment_data_bank_card import PaymentDataBankCard
 from yandex_checkout.domain.models.receipt import Receipt
 from yandex_checkout.domain.models.recipient import Recipient
 from yandex_checkout.domain.request.payment_request import PaymentRequest
+import yandex_checkout.domain.request
 
 
 class PaymentRequestTest(unittest.TestCase):
@@ -225,5 +230,52 @@ class PaymentRequestTest(unittest.TestCase):
         request.amount = Amount({'value': 0.1, 'currency': Currency.RUB})
         request.payment_method_id = '123'
         request.payment_method_data = PaymentDataWebmoney()
+        with self.assertRaises(ValueError):
+            request.validate()
+
+    @unittest.mock.patch('yandex_checkout.domain.request.payment_request.datetime',
+                         side_effect=datetime)
+    def test_request_validate_expiry(self, modtime):
+        modtime.now.return_value = datetime(year=2019, month=3, day=10)
+
+        request = PaymentRequest()
+        request.amount = Amount({'value': 0.1, 'currency': Currency.RUB})
+        request.payment_method_data = PaymentDataBankCard(card={
+            "number": "4111111111111111",
+            "expiry_year": "2019",
+            "expiry_month": "11",
+            "csc": "111"
+        })
+
+        # Should pass other validations
+        request.validate()
+
+        # Obviously expired
+        request.payment_method_data.card.expiry_year = '2018'
+        with self.assertRaises(ValueError):
+            request.validate()
+
+        # Same month
+        request.payment_method_data.card.expiry_year = '2019'
+        request.payment_method_data.card.expiry_month = '03'
+        request.validate()
+
+        # Just a notch before expiration (same timezone)
+        modtime.now.return_value = datetime(year=2019, month=3, day=31,
+                                            hour=23, minute=59, second=59)
+        request.payment_method_data.card.expiry_year = '2019'
+        request.payment_method_data.card.expiry_month = '03'
+        request.validate()
+
+        # Just a notch before expiration (worst timezone case)
+        client_tz = timezone(timedelta(hours=-12))
+        bank_tz = timezone(timedelta(hours=+14))
+        tz_offset = datetime.now(client_tz) - datetime.now(bank_tz)
+        tz_offset += timedelta(hours=1)  # DST
+        modtime.now.return_value += tz_offset
+        request.validate()
+
+        # Couple days after expiration
+        modtime.now.return_value = datetime(year=2019, month=4, day=3)
         with self.assertRaises(ValueError):
             request.validate()
