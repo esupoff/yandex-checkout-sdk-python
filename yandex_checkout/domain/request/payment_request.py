@@ -190,29 +190,39 @@ class PaymentRequest(RequestObject):
             self.__set_validation_error('Payment amount not specified')
 
         if amount.value <= 0.0:
-            self.__set_validation_error('Invalid payment amount value: ' + str(amount.value))
+            self.__set_validation_error('Invalid payment amount value: '
+                                        + str(amount.value))
 
         if self.receipt is not None and self.receipt.has_items:
             email = self.receipt.email
             phone = self.receipt.phone
             if not email and not phone:
-                self.__set_validation_error('Both email and phone values are empty in receipt')
+                self.__set_validation_error(
+                    'Both email and phone values are empty in receipt')
 
             if self.receipt.tax_system_code is None:
                 for item in self.receipt.items:
                     if item.vat_code is None:
-                        self.__set_validation_error('Item vat_code and receipt tax_system_id not specified')
+                        self.__set_validation_error(
+                            'Item vat_code and receipt tax_system_id '
+                            'not specified')
 
         if self.payment_token:
             if self.payment_method_id:
-                self.__set_validation_error('Both payment_token and payment_method_id values are specified')
+                self.__set_validation_error('Both payment_token and '
+                                            'payment_method_id values '
+                                            'are specified')
 
             if self.payment_method_data:
-                self.__set_validation_error('Both payment_token and payment_data values are specified')
+                self.__set_validation_error('Both payment_token and '
+                                            'payment_data values '
+                                            'are specified')
 
         elif self.payment_method_id:
             if self.payment_method_data:
-                self.__set_validation_error('Both payment_method_id and payment_data values are specified')
+                self.__set_validation_error('Both payment_method_id and '
+                                            'payment_data values '
+                                            'are specified')
 
         if self.payment_method_data.type == PaymentMethodType.BANK_CARD \
                 and self.payment_method_data.card is not None:
