@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from yandex_checkout.domain.common.request_object import RequestObject
 from yandex_checkout.domain.models.airline import Airline
 from yandex_checkout.domain.models.amount import Amount
@@ -7,6 +9,7 @@ from yandex_checkout.domain.models.payment_data.payment_data import PaymentData
 from yandex_checkout.domain.models.payment_data.payment_data_factory import PaymentDataFactory
 from yandex_checkout.domain.models.receipt import Receipt
 from yandex_checkout.domain.models.recipient import Recipient
+from yandex_checkout.domain.common.payment_method_type import PaymentMethodType
 
 
 class PaymentRequest(RequestObject):
@@ -210,6 +213,31 @@ class PaymentRequest(RequestObject):
         elif self.payment_method_id:
             if self.payment_method_data:
                 self.__set_validation_error('Both payment_method_id and payment_data values are specified')
+
+        if self.payment_method_data.type == PaymentMethodType.BANK_CARD \
+           and self.payment_method_data.card is not None:
+            # Get current date with an offset.
+            # Why? Because expiration is relative to the transaction
+            # processor's timezone, which we don't know. 1 day allowance will
+            # prevent any sorts of false negatives, leaving a small
+            # less-than-day window for the unlikely false positives.
+            # Account for GMT-12 to GMT+14 difference
+            # + DST: https://www.timeanddate.com/time/dst/
+            date_now = datetime.now() - timedelta(hours=26 + 1)
+
+            # Expiry date is "valid thru", meaning it is valid until the last
+            # second of the last day of the month in the date.
+            date_expiry = datetime(
+                year=int(self.payment_method_data.card.expiry_year),
+                month=int(self.payment_method_data.card.expiry_month),
+                day=1
+            )
+            # A little trick to add a month
+            date_expiry += timedelta(days=31)
+            date_expiry -= timedelta(days=date_expiry.day - 1)
+
+            if date_now >= date_expiry:
+                self.__set_validation_error('Card expired')
 
     def __set_validation_error(self, message):
         raise ValueError(message)
