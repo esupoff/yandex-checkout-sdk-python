@@ -55,9 +55,7 @@ class ReceiptTest(unittest.TestCase):
                     "value": 100.0,
                     "currency": Currency.RUB
                 },
-                "vat_code": 2,
-                'payment_subject': PaymentSubject.AGENT_COMMISSION,
-                'payment_mode': PaymentMode.ADVANCE
+                "vat_code": 2
             }
         ]}, dict(receipt))
 
@@ -80,9 +78,7 @@ class ReceiptTest(unittest.TestCase):
                         "value": 100.0,
                         "currency": Currency.RUB
                     },
-                    "vat_code": 2,
-                    "payment_subject": PaymentSubject.AGENT_COMMISSION,
-                    "payment_mode": PaymentMode.ADVANCE
+                    "vat_code": 2
                 }
             ]
 
@@ -103,9 +99,7 @@ class ReceiptTest(unittest.TestCase):
                 "value": 100.0,
                 "currency": Currency.RUB
             },
-            "vat_code": 2,
-            "payment_subject": PaymentSubject.AGENT_COMMISSION,
-            "payment_mode": PaymentMode.ADVANCE
+            "vat_code": 2
         }, dict(receipt_item))
 
         with self.assertRaises(TypeError):
