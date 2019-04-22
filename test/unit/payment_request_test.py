@@ -233,6 +233,14 @@ class PaymentRequestTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             request.validate()
 
+    def test_request_validate_payment_method_id(self):
+        request = PaymentRequest()
+        request.amount = Amount({'value': 0.1, 'currency': Currency.RUB})
+        request.payment_method_id = '2425cbf1-001f-5000-a001-181a3bf24511'
+
+        # Should pass other validations
+        request.validate()
+
     @unittest.mock.patch('yandex_checkout.domain.request.payment_request.datetime',
                          side_effect=datetime)
     def test_request_validate_expiry(self, modtime):
