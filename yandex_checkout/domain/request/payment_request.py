@@ -224,8 +224,9 @@ class PaymentRequest(RequestObject):
                                             'payment_data values '
                                             'are specified')
 
-        if self.payment_method_data.type == PaymentMethodType.BANK_CARD \
-           and self.payment_method_data.card is not None:
+        if self.payment_method_data \
+                and self.payment_method_data.type == PaymentMethodType.BANK_CARD \
+                and self.payment_method_data.card is not None:
             # Get current date with an offset.
             # Why? Because expiration is relative to the transaction
             # processor's timezone, which we don't know. 1 day allowance will
